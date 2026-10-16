@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Quiet Camera">
-<meta name="description" content="広告なし・写真は端末内で処理するシンプルなカメラ">
+<meta name="description" content="広告なし・撮影後すぐ共有メニューに進める無音カメラ">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <link rel="icon" type="image/png" href="./icon-192.png">
 <link rel="manifest" href="./manifest.webmanifest">
@@ -102,26 +102,18 @@ video.selfie { transform:scaleX(-1); }
   </div>
   <div class="zoom" id="zoomControl" hidden><span>ズーム</span><input type="range" id="zoom" min="1" max="2" step="0.1" value="1" aria-label="ズーム倍率"><span id="zoomText">1.0×</span></div>
   <div class="controls">
-    <button class="round" id="lastPhoto" aria-label="最後に撮影した写真" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="m5 17 5-5 4 4 3-3 4 4"/><circle cx="8" cy="8" r="1"/></svg></button>
+    <button class="round" id="lastPhoto" aria-label="最後の写真を保存・共有" title="最後の写真を保存・共有" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m-4-4 4 4 4-4"/><path d="M4 16v4h16v-4"/></svg></button>
     <button class="shutter" id="shutter" aria-label="無音で撮影" disabled></button>
     <button class="round" id="flip" aria-label="前面カメラと背面カメラを切り替え" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 8a8 8 0 0 0-14-3L3 8m0-4v4h4"/><path d="M4 16a8 8 0 0 0 14 3l3-3m0 4v-4h-4"/></svg></button>
   </div>
   <div class="footer"><span id="cameraInfo">動画フレームから撮影 · JPEG高画質</span><button id="about">使い方・注意点</button></div>
 </main>
-<div class="dialog" id="photoDialog" role="dialog" aria-modal="true" aria-label="撮影した写真" aria-hidden="true">
-  <div class="sheet">
-    <div class="sheetHead"><h2>撮影した写真</h2><button class="x" id="closePhoto" aria-label="閉じる">×</button></div>
-    <img id="captured" class="photo" alt="撮影した写真">
-    <div class="actions"><button id="saveBtn" class="primary">保存・共有</button><button id="downloadBtn" class="secondary">JPEGを保存</button></div>
-    <p id="photoHint">「保存・共有」からiPhoneの共有メニューを開き、「画像を保存」を選べる場合があります。JPEGを保存すると通常は「ファイル」にダウンロードされます。</p>
-  </div>
-</div>
 <div class="dialog" id="infoDialog" role="dialog" aria-modal="true" aria-label="使い方と注意点" aria-hidden="true">
   <div class="sheet info">
     <div class="sheetHead"><h2>使い方・注意点</h2><button class="x" id="closeInfo" aria-label="閉じる">×</button></div>
-    <p><strong>撮影：</strong>「カメラを開始」→撮影ボタン→「保存・共有」。シャッター音を発する写真撮影APIではなく、カメラ映像から画像を作ります。</p>
+    <p><strong>撮影：</strong>「カメラを開始」→撮影ボタン→iPhoneの共有メニューから「画像を保存」。プレビュー画面は開きません。メニューが自動で開かなかった場合は左下の保存ボタンを押してください。シャッター音を発する写真撮影APIではなく、カメラ映像から画像を作ります。</p>
     <p><strong>画質：</strong>カメラ映像の実際のピクセル数が上部に表示されます。純正カメラの48MP写真とは異なり、HDR/夜景合成/ProRAW等は使えません。4:3などの切り抜きではピクセル数が減る場合があります。</p>
-    <p><strong>プライバシー：</strong>撮影画像はこのページ内で生成し、外部サーバーにアップロードしません。写真の保存はiPhoneの共有シート等で行います。</p>
+    <p><strong>プライバシー：</strong>撮影画像はこのページ内で生成し、外部サーバーにアップロードしません。写真をiPhoneの「写真」アプリへ無確認で自動保存することはWebアプリの仕様上できません。共有メニューから「画像を保存」を選んでください。保存しないまま次の写真を撮ると前の写真は置き換わります。</p>
     <p><strong>設置：</strong>HTTPSで公開したURLをSafariで開き、「共有」→「ホーム画面に追加」→「Webアプリとして開く」を選ぶとアプリのように使えます。</p>
     <p><strong>補足：</strong>iPhone・iOS・Safariの組み合わせや地域の仕様によって、カメラ解像度・カメラ切り替え・挙動が変わります。実機で無音になるか確認してください。周囲のプライバシーに配慮して撮影しましょう。</p>
   </div>
@@ -256,12 +248,12 @@ async function takePhoto(){
   const w=video.videoWidth,h=video.videoHeight;
   if (!w||!h) {notify('カメラの映像を取得できません。');return;}
   const c=cropDimensions(w,h), canvas=document.createElement('canvas');
-  canvas.width=c.dw;canvas.height=c.dh;
+  canvas.width=c.dw; canvas.height=c.dh;
   const ctx=canvas.getContext('2d',{alpha:false});
   if(!ctx) {notify('画像を生成できませんでした。');return;}
   if(front){ctx.translate(c.dw,0);ctx.scale(-1,1);}
   ctx.drawImage(video,c.sx,c.sy,c.sw,c.sh,0,0,c.dw,c.dh);
-  $('shutterFlash').classList.remove('active');void $('shutterFlash').offsetWidth;$('shutterFlash').classList.add('active');
+  $('shutterFlash').classList.remove('active'); void $('shutterFlash').offsetWidth; $('shutterFlash').classList.add('active');
   $('shutter').disabled = true;
   try{
     const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',0.97));
@@ -270,43 +262,57 @@ async function takePhoto(){
     photoBlob=blob;
     photoURL=URL.createObjectURL(blob);
     photoName=makeName();
-    $('captured').src=photoURL;
     $('lastPhoto').disabled=false;
-    $('photoHint').textContent=`画像サイズ：${c.dw} × ${c.dh} · ${(blob.size/1024/1024).toFixed(1)} MB。iPhoneでは「保存・共有」から「画像を保存」を選んでください。`;
-    openDialog('photoDialog');
+    $('status').textContent='撮影しました。「画像を保存」を選択してください。';
+    // プレビューを挟まず、撮影ボタンの操作からすぐ共有シートを呼ぶ。
+    // Safariの一時的なユーザー操作権限が切れた場合は、左下ボタンから再試行。
+    await shareLastPhoto();
   }catch(e){console.error(e);notify('撮影画像の作成に失敗しました。');}
   finally {$('shutter').disabled = false;}
 }
-async function savePhoto(){
+async function shareLastPhoto(){
   if (!photoBlob) return;
   const file=new File([photoBlob],photoName,{type:'image/jpeg',lastModified:Date.now()});
+  if(!navigator.share || (navigator.canShare && !navigator.canShare({files:[file]}))){
+    $('status').textContent='共有に非対応です。左下からJPEGをダウンロードできます。';
+    notify('共有機能が使えないため、左下の保存ボタンからJPEGをダウンロードしてください。');
+    return;
+  }
   try{
-    if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
-      await navigator.share({files:[file],title:'Quiet Cameraで撮影'});
+    await navigator.share({files:[file],title:'Quiet Cameraで撮影'});
+    $('status').textContent='「写真」に保存されたか確認してください。左下から再共有できます。';
+  }catch(e){
+    if(e.name === 'AbortError'){
+      $('status').textContent='保存は未完了の可能性があります。左下から再開できます。';
       return;
     }
-  }catch(e){
-    if(e.name==='AbortError')return;
-    console.warn('Share failed',e);
+    console.warn('Share failed:',e);
+    $('status').textContent='左下の保存ボタンを押して、もう一度保存してください。';
+    notify('共有メニューを自動で開けませんでした。左下の保存ボタンをタップしてください。');
   }
-  downloadPhoto();
-  notify('共有に対応していないためJPEGをダウンロードしました。');
 }
 function downloadPhoto(){
-  if(!photoURL)return;
+  if(!photoURL) return;
   const a=document.createElement('a');
-  a.href=photoURL;a.download=photoName;
-  document.body.appendChild(a);a.click();a.remove();
+  a.href=photoURL; a.download=photoName;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function saveLastPhoto(){
+  if(!photoBlob) return;
+  const file=new File([photoBlob],photoName,{type:'image/jpeg',lastModified:Date.now()});
+  if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
+    shareLastPhoto();
+  }else{
+    downloadPhoto();
+    notify('JPEGをダウンロードしました。写真アプリへ移すには「ファイル」から画像を開いて保存してください。');
+  }
 }
 $('startBtn').addEventListener('click',startCamera);
 $('shutter').addEventListener('click',takePhoto);
 $('flip').addEventListener('click',async()=>{ front=!front; await startCamera(); });
-$('lastPhoto').addEventListener('click',()=>{if(photoBlob)openDialog('photoDialog');});
-$('closePhoto').addEventListener('click',()=>closeDialog('photoDialog'));
+$('lastPhoto').addEventListener('click',saveLastPhoto);
 $('closeInfo').addEventListener('click',()=>closeDialog('infoDialog'));
 $('about').addEventListener('click',()=>openDialog('infoDialog'));
-$('saveBtn').addEventListener('click',savePhoto);
-$('downloadBtn').addEventListener('click',downloadPhoto);
 for(const btn of document.querySelectorAll('[data-ratio]'))btn.addEventListener('click',()=>{ratio=btn.dataset.ratio;updateRatio();});
 $('zoom').addEventListener('input',async(event)=>{
   const val=Number(event.target.value);
@@ -315,8 +321,8 @@ $('zoom').addEventListener('input',async(event)=>{
   catch(_){notify('このカメラではズーム操作に対応していません。');$('zoomControl').hidden=true;}
 });
 video.addEventListener('resize',updateSize);
-for(const id of ['photoDialog','infoDialog'])$(id).addEventListener('click',(e)=>{if(e.target===$(id))closeDialog(id);});
-document.addEventListener('keydown',(e)=>{if(e.key==='Escape'){closeDialog('photoDialog');closeDialog('infoDialog');}});
+for(const id of ['infoDialog'])$(id).addEventListener('click',(e)=>{if(e.target===$(id))closeDialog(id);});
+document.addEventListener('keydown',(e)=>{if(e.key==='Escape'){closeDialog('infoDialog');}});
 window.addEventListener('pagehide',stopCamera);
 // キャッシュ登録はHTTPSで配信した場合だけ行います。
 if('serviceWorker' in navigator && location.protocol==='https:') window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
